@@ -1,0 +1,100 @@
+metadata:
+  name: build-push-kaniko-sensor
+  namespace: argo-events
+  uid: bec8f930-64de-42e7-adae-3df9fd1a0bb9
+  resourceVersion: "105576947"
+  generation: 1
+  creationTimestamp: "2025-10-13T10:17:52Z"
+  finalizers:
+    - sensor-controller
+  managedFields:
+    - manager: argo
+      operation: Update
+      apiVersion: argoproj.io/v1alpha1
+      time: "2025-10-13T10:17:52Z"
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:finalizers:
+            ".": {}
+            v:"sensor-controller": {}
+        f:spec:
+          ".": {}
+          f:dependencies: {}
+          f:loggingFields: {}
+          f:template:
+            ".": {}
+            f:serviceAccountName: {}
+          f:triggers: {}
+    - manager: argo-events
+      operation: Update
+      apiVersion: argoproj.io/v1alpha1
+      time: "2025-10-13T10:17:52Z"
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:status:
+          ".": {}
+          f:conditions: {}
+      subresource: status
+spec:
+  dependencies:
+    - name: github-dep
+      eventSourceName: github-eventsource
+      eventName: github
+  triggers:
+    - template:
+        name: build-push-kaniko
+        argoWorkflow:
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: build-push-kaniko-webhook-
+                namespace: argo-events
+              spec:
+                arguments:
+                  parameters:
+                    - name: git-url
+                    - name: git-ref
+                    - name: timestamp
+                    - name: repo-name
+                    - name: component-name
+                workflowTemplateRef:
+                  name: build-push-kaniko-webhook
+          operation: submit
+          parameters:
+            - src:
+                dependencyName: github-dep
+                dataKey: body.repository.git_url
+              dest: spec.arguments.parameters.[?(@.name=="git-url")].value
+            - src:
+                dependencyName: github-dep
+                dataTemplate: '{{ .Input.body.ref | splitList "/" | last }}'
+              dest: spec.arguments.parameters.[?(@.name=="git-ref")].value
+            - src:
+                dependencyName: github-dep
+                dataKey: body.repository.pushed_at
+              dest: spec.arguments.parameters.[?(@.name=="timestamp")].value
+            - src:
+                dependencyName: github-dep
+                dataKey: body.repository.name
+              dest: spec.arguments.parameters.[?(@.name=="repo-name")].value
+            - src:
+                dependencyName: github-dep
+                dataKey: body.repository.name
+              dest: spec.arguments.parameters.[?(@.name=="component-name")].value
+  template:
+    serviceAccountName: argo-events-sa
+  loggingFields: null
+status:
+  conditions:
+    - type: DependenciesProvided
+      status: "True"
+      lastTransitionTime: "2025-10-13T10:17:52Z"
+    - type: Deployed
+      status: "True"
+      lastTransitionTime: "2025-10-13T10:17:52Z"
+    - type: TriggersProvided
+      status: "True"
+      lastTransitionTime: "2025-10-13T10:17:52Z"
