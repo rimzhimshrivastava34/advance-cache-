@@ -1,0 +1,149 @@
+metadata:
+  name: build-push-kaniko-webhook
+  namespace: argo-events
+  uid: 24d693f8-5f86-4348-9e5a-32df94397835
+  resourceVersion: "105546705"
+  generation: 2
+  creationTimestamp: "2025-10-13T08:53:56Z"
+  labels:
+    workflows.argoproj.io/action: Update
+    workflows.argoproj.io/actor: system-serviceaccount-argo-argo-workflows-server
+    workflows.argoproj.io/creator: system-serviceaccount-argo-argo-workflows-server
+  managedFields:
+    - manager: argo
+      operation: Update
+      apiVersion: argoproj.io/v1alpha1
+      time: "2025-10-13T08:55:48Z"
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:labels:
+            ".": {}
+            f:workflows.argoproj.io/action: {}
+            f:workflows.argoproj.io/actor: {}
+            f:workflows.argoproj.io/creator: {}
+        f:spec: {}
+spec:
+  templates:
+    - name: build-and-push
+      inputs: {}
+      outputs: {}
+      metadata: {}
+      dag:
+        tasks:
+          - name: git-clone
+            template: dev-backend-git-clone
+            arguments:
+              parameters:
+                - name: url
+                  value: "{{workflow.parameters.git-url}}"
+                - name: ref
+                  value: "{{workflow.parameters.git-ref}}"
+          - name: build-kaniko
+            template: kaniko-build
+            arguments:
+              parameters:
+                - name: context-path
+                  value: /workspace/{{workflow.parameters.component-name}}
+                - name: dockerfile-path
+                  value: /workspace/{{workflow.parameters.component-name}}/Dockerfile
+                - name: image
+                  value: labs47b/{{workflow.parameters.component-name}}:{{tasks.git-clone.outputs.parameters.clean-branch-name}}-{{workflow.parameters.timestamp}}
+            dependencies:
+              - git-clone
+    - name: dev-backend-git-clone
+      inputs:
+        parameters:
+          - name: url
+          - name: ref
+      outputs:
+        parameters:
+          - name: clean-branch-name
+            valueFrom:
+              path: /tmp/branch_name.txt
+      metadata: {}
+      script:
+        name: ""
+        image: bitnami/git:latest
+        command:
+          - sh
+          - -c
+        resources: {}
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+          - name: ssh-volume
+            readOnly: true
+            mountPath: /etc/ssh_key
+        source: >
+            set -ex
+            echo "Cleaning /workspace..."
+            rm -rf /workspace/*
+
+            BRANCH_NAME="{{inputs.parameters.branch}}"
+            echo "Using branch: $BRANCH_NAME"
+
+            echo "--> Setting up SSH..."
+            eval $(ssh-agent -s)
+            ssh-add /etc/ssh_key/ssh-private-key
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
+            echo "--> Cloning repository {{inputs.parameters.url}} on branch $BRANCH_NAME"
+            git clone --branch $BRANCH_NAME "{{inputs.parameters.url}}" /workspace
+
+            cd /workspace
+            git submodule update --init --recursive
+            echo "✅ Clone complete."
+    - name: kaniko-build
+      inputs:
+        parameters:
+          - name: image
+          - name: context-path
+          - name: dockerfile-path
+      outputs: {}
+      metadata: {}
+      container:
+        name: ""
+        image: gcr.io/kaniko-project/executor:v1.9.1
+        args:
+          - --dockerfile={{inputs.parameters.dockerfile-path}}
+          - --context={{inputs.parameters.context-path}}
+          - --destination={{inputs.parameters.image}}
+          - --cleanup
+        resources: {}
+        volumeMounts:
+          - name: workspace
+            readOnly: true
+            mountPath: /workspace
+          - name: docker-config
+            mountPath: /kaniko/.docker/
+  entrypoint: build-and-push
+  arguments:
+    parameters:
+      - name: git-url
+      - name: git-ref
+      - name: timestamp
+      - name: component-name
+  volumes:
+    - name: ssh-volume
+      secret:
+        secretName: git-creds
+        defaultMode: 256
+    - name: docker-config
+      secret:
+        secretName: docker-config
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+  volumeClaimTemplates:
+    - metadata:
+        name: workspace
+        creationTimestamp: null
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+      status: {}

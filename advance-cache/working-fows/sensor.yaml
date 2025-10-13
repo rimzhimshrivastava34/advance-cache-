@@ -2,16 +2,16 @@ metadata:
   name: build-push-kaniko-sensor
   namespace: argo-events
   uid: bec8f930-64de-42e7-adae-3df9fd1a0bb9
-  resourceVersion: "105576947"
-  generation: 1
+  resourceVersion: "105578474"
+  generation: 2
   creationTimestamp: "2025-10-13T10:17:52Z"
   finalizers:
-    - sensor-controller 
+    - sensor-controller
   managedFields:
     - manager: argo
       operation: Update
       apiVersion: argoproj.io/v1alpha1
-      time: "2025-10-13T10:17:52Z"
+      time: "2025-10-13T10:22:00Z"
       fieldsType: FieldsV1
       fieldsV1:
         f:metadata:
@@ -29,7 +29,7 @@ metadata:
     - manager: argo-events
       operation: Update
       apiVersion: argoproj.io/v1alpha1
-      time: "2025-10-13T10:17:52Z"
+      time: "2025-10-13T10:22:00Z"
       fieldsType: FieldsV1
       fieldsV1:
         f:status:
@@ -66,24 +66,24 @@ spec:
           parameters:
             - src:
                 dependencyName: github-dep
-                dataKey: body.repository.git_url
-              dest: spec.arguments.parameters.[?(@.name=="git-url")].value
+                dataKey: body.repository.clone_url
+              dest: spec.arguments.parameters.0.value
             - src:
                 dependencyName: github-dep
                 dataTemplate: '{{ .Input.body.ref | splitList "/" | last }}'
-              dest: spec.arguments.parameters.[?(@.name=="git-ref")].value
+              dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: github-dep
                 dataKey: body.repository.pushed_at
-              dest: spec.arguments.parameters.[?(@.name=="timestamp")].value
+              dest: spec.arguments.parameters.2.value
             - src:
                 dependencyName: github-dep
                 dataKey: body.repository.name
-              dest: spec.arguments.parameters.[?(@.name=="repo-name")].value
+              dest: spec.arguments.parameters.3.value
             - src:
                 dependencyName: github-dep
                 dataKey: body.repository.name
-              dest: spec.arguments.parameters.[?(@.name=="component-name")].value
+              dest: spec.arguments.parameters.4.value
   template:
     serviceAccountName: argo-events-sa
   loggingFields: null
@@ -91,10 +91,10 @@ status:
   conditions:
     - type: DependenciesProvided
       status: "True"
-      lastTransitionTime: "2025-10-13T10:17:52Z"
+      lastTransitionTime: "2025-10-13T10:22:00Z"
     - type: Deployed
       status: "True"
-      lastTransitionTime: "2025-10-13T10:17:52Z"
+      lastTransitionTime: "2025-10-13T10:22:00Z"
     - type: TriggersProvided
       status: "True"
-      lastTransitionTime: "2025-10-13T10:17:52Z"
+      lastTransitionTime: "2025-10-13T10:22:00Z"
