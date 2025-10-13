@@ -1,5 +1,5 @@
 flask
 requests
 # requirements.txt
-# Add any additional dependencies your project 
+# Add any additional dependencies your project here it is 
 
