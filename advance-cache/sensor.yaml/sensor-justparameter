@@ -1,0 +1,187 @@
+metadata:
+
+name: build-push-kaniko-sensor
+
+namespace: argo-events
+
+uid: cd0f4e52-1f09-4ad7-87c6-20a04316d7b5
+
+resourceVersion: "105501354"
+
+generation: 4
+
+creationTimestamp: "2025-10-09T13:21:16Z"
+
+finalizers:
+
+- sensor-controller
+
+managedFields:
+
+- manager: argo-events
+
+operation: Update
+
+apiVersion: argoproj.io/v1alpha1
+
+time: "2025-10-09T13:21:16Z"
+
+fieldsType: FieldsV1
+
+fieldsV1:
+
+f:metadata:
+
+f:finalizers:
+
+".": {}
+
+v:"sensor-controller": {}
+
+- manager: argo
+
+operation: Update
+
+apiVersion: argoproj.io/v1alpha1
+
+time: "2025-10-13T06:51:34Z"
+
+fieldsType: FieldsV1
+
+fieldsV1:
+
+f:spec:
+
+".": {}
+
+f:dependencies: {}
+
+f:loggingFields: {}
+
+f:template:
+
+".": {}
+
+f:serviceAccountName: {}
+
+f:triggers: {}
+
+- manager: argo-events
+
+operation: Update
+
+apiVersion: argoproj.io/v1alpha1
+
+time: "2025-10-13T06:51:34Z"
+
+fieldsType: FieldsV1
+
+fieldsV1:
+
+f:status:
+
+".": {}
+
+f:conditions: {}
+
+subresource: status
+
+spec:
+
+dependencies:
+
+- name: github-dep
+
+eventSourceName: github-eventsource
+
+eventName: github
+
+triggers:
+
+- template:
+
+name: build-push-kaniko-gitwebhook
+
+k8s:
+
+source:
+
+resource:
+
+apiVersion: argoproj.io/v1alpha1
+
+kind: Workflow
+
+metadata:
+
+generateName: build-push-kaniko-
+
+namespace: argo-events
+
+spec:
+
+arguments:
+
+parameters:
+
+- name: git-url
+
+value: "{{ .Input.github-dep.body.repository.ssh_url }}"
+
+- name: git-ref
+
+value: "{{ .Input.github-dep.body.ref }}"
+
+- name: master-branch
+
+value: "{{ .Input.github-dep.body.master_branch}}"
+
+- name: repo-name
+
+value: "{{ .Input.github-dep.body.repository.name }}"
+
+- name: timestamp
+
+value: "{{ .Input.github-dep.body.repository.pushed_at }}"
+
+- name: component-name
+
+value: my-app
+
+- name: base-image-name
+
+value: your-registry/your-image
+
+workflowTemplateRef:
+
+name: build-push-kaniko
+
+operation: create
+
+template:
+
+serviceAccountName: argo-events-sa
+
+loggingFields: null
+
+status:
+
+conditions:
+
+- type: DependenciesProvided
+
+status: "True"
+
+lastTransitionTime: "2025-10-13T06:51:34Z"
+
+- type: Deployed
+
+status: "True"
+
+lastTransitionTime: "2025-10-13T06:51:34Z"
+
+- type: TriggersProvided
+
+status: "True"
+
+lastTransitionTime: "2025-10-13T06:51:34Z" 
